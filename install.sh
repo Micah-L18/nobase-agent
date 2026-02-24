@@ -91,6 +91,13 @@ REPO="Micah-L18/nobase-agent"
 BINARY_NAME="no-base-${PLATFORM}"
 BINARY_PATH="/usr/local/bin/no-base"
 
+# Normalize gateway URL: ensure it uses the /agent/ws path (not /backend/ws)
+GATEWAY=$(echo "$GATEWAY" | sed 's|/backend/ws|/agent/ws|')
+# If no path specified, append /agent/ws
+if ! echo "$GATEWAY" | grep -q '/agent/ws'; then
+  GATEWAY="${GATEWAY%/}/agent/ws"
+fi
+
 echo "  OS:       $OS"
 echo "  Arch:     $ARCH"
 echo "  Gateway:  $GATEWAY"
