@@ -74,10 +74,11 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 
 # ── Detect platform ─────────────────────────────────────────
+# Use statically-linked musl builds for maximum compatibility across Linux distros
 ARCH=$(uname -m)
 case "$ARCH" in
-  x86_64|amd64)  ARCH="x86_64"; PLATFORM="linux-x86_64"  ;;
-  aarch64|arm64)  ARCH="aarch64"; PLATFORM="linux-aarch64" ;;
+  x86_64|amd64)  ARCH="x86_64"; PLATFORM="linux-x86_64-static"  ;;
+  aarch64|arm64)  ARCH="aarch64"; PLATFORM="linux-arm64-static" ;;
   *) echo "  ✗ Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 

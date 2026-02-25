@@ -137,10 +137,16 @@ pub async fn check_and_update(
     }
     info!("SHA-256 verified");
 
-    // Step 5: Atomic replace — write to tmp, set permissions, rename over current
+    // Step 5: Atomic replace — write to tmp, set permissions, move over current
+    // rename() fails across filesystems (EXDEV: /tmp → /usr/local/bin), so
+    // we fall back to copy + remove when that happens.
     tokio::fs::write(TMP_PATH, &new_binary).await?;
     tokio::fs::set_permissions(TMP_PATH, std::fs::Permissions::from_mode(0o755)).await?;
-    tokio::fs::rename(TMP_PATH, BINARY_PATH).await?;
+    if tokio::fs::rename(TMP_PATH, BINARY_PATH).await.is_err() {
+        tokio::fs::copy(TMP_PATH, BINARY_PATH).await?;
+        tokio::fs::set_permissions(BINARY_PATH, std::fs::Permissions::from_mode(0o755)).await?;
+        let _ = tokio::fs::remove_file(TMP_PATH).await;
+    }
     info!("Binary replaced at {BINARY_PATH}");
 
     // Step 6: Restart service if requested
