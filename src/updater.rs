@@ -78,6 +78,11 @@ pub async fn check_and_update(
     let checksum_url = format!("{backend_url}/api/agents/binary/{platform}/checksum");
     debug!("Fetching checksum from {checksum_url}");
     let checksum_resp = client.get(&checksum_url).send().await?;
+    if checksum_resp.status() == reqwest::StatusCode::NOT_FOUND {
+        // No binary available on the backend — skip update silently
+        debug!("No binary available for {platform} on backend (404)");
+        return Ok(UpdateResult::AlreadyUpToDate);
+    }
     if !checksum_resp.status().is_success() {
         return Err(format!(
             "Failed to fetch checksum (HTTP {})",
