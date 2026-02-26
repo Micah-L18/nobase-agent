@@ -42,7 +42,7 @@ done
 
 echo ""
 echo "  ╔═══════════════════════════════════════╗"
-echo "  ║   No-Base Agent Installer              ║"
+echo "  ║   No-Base Agent Installer             ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo ""
 
@@ -287,7 +287,7 @@ fi
 
 echo ""
 echo "  ╔═══════════════════════════════════════╗"
-echo "  ║   Installation Complete!               ║"
+echo "  ║   Installation Complete!              ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo ""
 echo "  Commands:"
