@@ -89,8 +89,9 @@ pub async fn run_connection_loop(config: AgentConfig, config_path: String) -> Re
                 break;
             }
             Err(e) => {
-                error!("Connection error: {e}");
-                warn!("Reconnecting in {backoff_secs}s...");
+                error!("Connection error: {e:#}");
+                warn!("Reconnecting in {backoff_secs}s... (gateway_url was: {})",
+                      config.read().await.connection.gateway_url);
                 time::sleep(Duration::from_secs(backoff_secs)).await;
                 backoff_secs = (backoff_secs * 2).min(max_backoff);
             }
@@ -118,6 +119,7 @@ async fn connect_and_run(
     drop(cfg); // Release read lock
 
     info!("Connecting to gateway: {url}");
+    info!("Connection config: needs_registration={needs_registration}, server_id={server_id:?}, has_api_key={}", !api_key.is_empty());
 
     let request = http::Request::builder()
         .uri(&url)
@@ -131,8 +133,12 @@ async fn connect_and_run(
         )
         .body(())?;
 
-    let (ws_stream, _response) = connect_async(request).await?;
-    info!("Connected to gateway");
+    let (ws_stream, response) = connect_async(request).await
+        .map_err(|e| {
+            error!("WebSocket connection failed to {url}: {e}");
+            e
+        })?;
+    info!("Connected to gateway — HTTP status: {}, headers: {:?}", response.status(), response.headers());
 
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
@@ -415,9 +421,11 @@ async fn handle_response(response: RpcResponse, config: Arc<RwLock<AgentConfig>>
     if response.is_error() {
         if let Some(ref err) = response.error {
             error!(
-                "RPC error (id={}): [{}] {}",
-                response.id, err.code, err.message
+                "RPC error (id={}): [{}] {} | full error: {:?}",
+                response.id, err.code, err.message, err
             );
+        } else {
+            error!("RPC error (id={}) with no error body: {:?}", response.id, response);
         }
     } else if let Some(ref result) = response.result {
         // Check if this is a registration response
