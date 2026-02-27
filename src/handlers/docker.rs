@@ -1,5 +1,6 @@
 use agent_proto::{
-    ContainerStats, DockerInspectRequest, DockerLogsRequest, DockerStatsRequest,
+    ContainerStats, DockerContainerSummary, DockerInspectRequest, DockerListRequest,
+    DockerListResponse, DockerLogsRequest, DockerPortMapping, DockerStatsRequest,
     DockerStatsResponse, RpcRequest, RpcResponse,
 };
 use agent_proto::stream::{StreamChannel, StreamData, StreamEnd};
@@ -138,6 +139,93 @@ pub async fn handle_docker_stats(id: String, params: serde_json::Value) -> RpcRe
     };
 
     RpcResponse::success(id, serde_json::to_value(response).unwrap_or_default())
+}
+
+/// Handle docker.list — list containers with summary info.
+pub async fn handle_docker_list(id: String, params: serde_json::Value) -> RpcResponse {
+    let request: DockerListRequest = match serde_json::from_value(params) {
+        Ok(r) => r,
+        Err(e) => return RpcResponse::error(id, -32602, format!("Invalid params: {e}")),
+    };
+
+    let docker = match connect_docker() {
+        Ok(d) => d,
+        Err(e) => return RpcResponse::error(id, -1, e),
+    };
+
+    let options = if request.all {
+        // All containers (running + stopped)
+        Some(ListContainersOptions::<String> {
+            all: true,
+            ..Default::default()
+        })
+    } else {
+        // Running only
+        let mut filters = HashMap::new();
+        filters.insert("status".to_string(), vec!["running".to_string()]);
+        Some(ListContainersOptions {
+            filters,
+            ..Default::default()
+        })
+    };
+
+    match docker.list_containers(options).await {
+        Ok(containers) => {
+            let summaries: Vec<DockerContainerSummary> = containers
+                .into_iter()
+                .map(|c| {
+                    let name = c
+                        .names
+                        .as_ref()
+                        .and_then(|n| n.first())
+                        .map(|n| n.trim_start_matches('/').to_string())
+                        .unwrap_or_default();
+
+                    let image = c.image.unwrap_or_default();
+                    let state = c.state.unwrap_or_default();
+                    let status = c.status.unwrap_or_default();
+                    let created = c.created.unwrap_or(0);
+                    let labels = c.labels.unwrap_or_default();
+
+                    let ports = c
+                        .ports
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|p| DockerPortMapping {
+                            container_port: p.private_port,
+                            host_port: p.public_port,
+                            protocol: p.typ.map(|t| format!("{t:?}").to_lowercase()).unwrap_or_else(|| "tcp".into()),
+                            host_ip: p.ip,
+                        })
+                        .collect();
+
+                    let networks = c
+                        .network_settings
+                        .and_then(|ns| ns.networks)
+                        .map(|nets| nets.keys().cloned().collect())
+                        .unwrap_or_default();
+
+                    DockerContainerSummary {
+                        id: c.id.unwrap_or_default(),
+                        name,
+                        image,
+                        state,
+                        status,
+                        created,
+                        ports,
+                        networks,
+                        labels,
+                    }
+                })
+                .collect();
+
+            let response = DockerListResponse {
+                containers: summaries,
+            };
+            RpcResponse::success(id, serde_json::to_value(response).unwrap_or_default())
+        }
+        Err(e) => RpcResponse::error(id, -1, format!("Failed to list containers: {e}")),
+    }
 }
 
 /// Handle docker.inspect — get detailed container information.

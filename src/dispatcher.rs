@@ -63,6 +63,7 @@ pub async fn dispatch_request(
         "exec.stream" => super::handlers::exec::handle_exec_stream(id, request.params, tx).await,
 
         // ─── Docker operations ──────────────────────────────────────────
+        "docker.list" => super::handlers::docker::handle_docker_list(id, request.params).await,
         "docker.stats" => super::handlers::docker::handle_docker_stats(id, request.params).await,
         "docker.inspect" => super::handlers::docker::handle_docker_inspect(id, request.params).await,
         "docker.logs" => super::handlers::docker::handle_docker_logs(id, request.params, tx).await,

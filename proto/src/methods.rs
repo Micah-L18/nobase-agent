@@ -303,6 +303,39 @@ pub struct DockerLogsRequest {
     pub follow: Option<bool>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerListRequest {
+    /// If true, include stopped containers. Default: false (running only).
+    #[serde(default)]
+    pub all: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerListResponse {
+    pub containers: Vec<DockerContainerSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerContainerSummary {
+    pub id: String,
+    pub name: String,
+    pub image: String,
+    pub state: String,
+    pub status: String,
+    pub created: i64,
+    pub ports: Vec<DockerPortMapping>,
+    pub networks: Vec<String>,
+    pub labels: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerPortMapping {
+    pub container_port: u16,
+    pub host_port: Option<u16>,
+    pub protocol: String,
+    pub host_ip: Option<String>,
+}
+
 // ─── System Info ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
