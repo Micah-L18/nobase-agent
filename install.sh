@@ -1,5 +1,5 @@
 #!/bin/bash
-# ── No-Base Agent Installer ──────────────────────────────────
+# ── NoBase Agent Installer ──────────────────────────────────
 # Downloads the latest release from GitHub and configures the agent.
 #
 # Usage:
@@ -42,7 +42,7 @@ done
 
 echo ""
 echo "  ╔═══════════════════════════════════════╗"
-echo "  ║   No-Base Agent Installer             ║"
+echo "  ║   NoBase Agent Installer             ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo ""
 
@@ -89,8 +89,8 @@ if [[ "$OS" != "linux" ]]; then
 fi
 
 REPO="Micah-L18/nobase-agent"
-BINARY_NAME="no-base-${PLATFORM}"
-BINARY_PATH="/usr/local/bin/no-base"
+BINARY_NAME="nobase-${PLATFORM}"
+BINARY_PATH="/usr/local/bin/nobase"
 
 # Normalize gateway URL: ensure it uses the /agent/ws path (not /backend/ws)
 GATEWAY=$(echo "$GATEWAY" | sed 's|/backend/ws|/agent/ws|')
@@ -117,13 +117,13 @@ fi
 # ── [1/5] Download agent binary ─────────────────────────────
 echo "[1/5] Downloading agent binary..."
 
-HTTP_CODE=$(curl -fsSL -w "%{http_code}" -o /tmp/no-base "$DOWNLOAD_URL" 2>/dev/null) || {
+HTTP_CODE=$(curl -fsSL -w "%{http_code}" -o /tmp/nobase "$DOWNLOAD_URL" 2>/dev/null) || {
   echo "  ✗ Failed to download binary from:"
   echo "    $DOWNLOAD_URL"
   echo ""
   echo "  Make sure a release exists with the asset: ${BINARY_NAME}"
   echo "  Check: https://github.com/${REPO}/releases"
-  rm -f /tmp/no-base
+  rm -f /tmp/nobase
   exit 1
 }
 
@@ -135,9 +135,9 @@ EXPECTED_SHA256=$(curl -fsSL "$CHECKSUM_URL" 2>/dev/null | awk '{print $1}') || 
 
 if [[ -n "$EXPECTED_SHA256" ]]; then
   if command -v sha256sum &>/dev/null; then
-    ACTUAL_SHA256=$(sha256sum /tmp/no-base | awk '{print $1}')
+    ACTUAL_SHA256=$(sha256sum /tmp/nobase | awk '{print $1}')
   elif command -v shasum &>/dev/null; then
-    ACTUAL_SHA256=$(shasum -a 256 /tmp/no-base | awk '{print $1}')
+    ACTUAL_SHA256=$(shasum -a 256 /tmp/nobase | awk '{print $1}')
   else
     ACTUAL_SHA256=""
     echo "  ⚠ No sha256sum/shasum available, skipping verification"
@@ -149,7 +149,7 @@ if [[ -n "$EXPECTED_SHA256" ]]; then
       echo "    Expected: $EXPECTED_SHA256"
       echo "    Actual:   $ACTUAL_SHA256"
       echo "    The binary may have been corrupted or tampered with."
-      rm -f /tmp/no-base
+      rm -f /tmp/nobase
       exit 1
     fi
     echo "  ✓ SHA256 checksum verified"
@@ -158,15 +158,15 @@ else
   echo "  ⚠ No checksum available, skipping verification"
 fi
 
-chmod +x /tmp/no-base
-mv /tmp/no-base "$BINARY_PATH"
+chmod +x /tmp/nobase
+mv /tmp/nobase "$BINARY_PATH"
 echo "  ✓ Binary installed to $BINARY_PATH"
 
 # ── [2/5] Write configuration ───────────────────────────────
 echo "[2/5] Writing configuration..."
-mkdir -p /etc/no-base
+mkdir -p /etc/nobase
 
-cat > /etc/no-base/agent.toml <<TOML
+cat > /etc/nobase/agent.toml <<TOML
 [connection]
 gateway_url = "${GATEWAY}"
 backend_url = "${BACKEND}"
@@ -190,20 +190,20 @@ max_file_size_mb = 100
 
 [logging]
 level = "info"
-file = "/var/log/no-base.log"
+file = "/var/log/nobase.log"
 max_size_mb = 50
 max_files = 3
 TOML
 
-chmod 600 /etc/no-base/agent.toml
-echo "  ✓ Config written to /etc/no-base/agent.toml"
+chmod 600 /etc/nobase/agent.toml
+echo "  ✓ Config written to /etc/nobase/agent.toml"
 
 # ── [3/5] Create systemd service ────────────────────────────
 echo "[3/5] Creating systemd service..."
 
-cat > /etc/systemd/system/no-base.service <<SERVICE
+cat > /etc/systemd/system/nobase.service <<SERVICE
 [Unit]
-Description=No-Base Agent
+Description=NoBase Agent
 After=network-online.target
 Wants=network-online.target
 
@@ -224,12 +224,12 @@ echo "  ✓ Systemd service created"
 # ── [4/5] Create uninstall script ───────────────────────────
 echo "[4/5] Creating uninstall script..."
 
-cat > /usr/local/bin/no-base-uninstall <<'UNINSTALL'
+cat > /usr/local/bin/nobase-uninstall <<'UNINSTALL'
 #!/bin/bash
 set -e
 
 echo ""
-echo "  Removing No-Base Agent..."
+echo "  Removing NoBase Agent..."
 echo ""
 
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -237,52 +237,52 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-if systemctl is-active --quiet no-base 2>/dev/null; then
-  systemctl stop no-base
+if systemctl is-active --quiet nobase 2>/dev/null; then
+  systemctl stop nobase
   echo "  ✓ Agent stopped"
 fi
 
-if systemctl is-enabled --quiet no-base 2>/dev/null; then
-  systemctl disable no-base --quiet
+if systemctl is-enabled --quiet nobase 2>/dev/null; then
+  systemctl disable nobase --quiet
 fi
 
-rm -f /etc/systemd/system/no-base.service
+rm -f /etc/systemd/system/nobase.service
 systemctl daemon-reload
 echo "  ✓ Systemd service removed"
 
-rm -f /usr/local/bin/no-base
+rm -f /usr/local/bin/nobase
 echo "  ✓ Binary removed"
 
-rm -rf /etc/no-base
+rm -rf /etc/nobase
 echo "  ✓ Configuration removed"
 
-rm -f /var/log/no-base.log
-rm -rf /var/lib/no-base
+rm -f /var/log/nobase.log
+rm -rf /var/lib/nobase
 echo "  ✓ Logs and data removed"
 
-rm -f /usr/local/bin/no-base-uninstall
+rm -f /usr/local/bin/nobase-uninstall
 echo "  ✓ Uninstall script removed"
 
 echo ""
-echo "  No-Base Agent has been completely removed."
+echo "  NoBase Agent has been completely removed."
 echo ""
 UNINSTALL
 
-chmod +x /usr/local/bin/no-base-uninstall
-echo "  ✓ Uninstall script created at /usr/local/bin/no-base-uninstall"
+chmod +x /usr/local/bin/nobase-uninstall
+echo "  ✓ Uninstall script created at /usr/local/bin/nobase-uninstall"
 
 # ── [5/5] Start agent ──────────────────────────────────────
 echo "[5/5] Starting agent..."
-systemctl enable no-base --quiet
-systemctl restart no-base
+systemctl enable nobase --quiet
+systemctl restart nobase
 
 sleep 2
 
-if systemctl is-active --quiet no-base; then
+if systemctl is-active --quiet nobase; then
   echo "  ✓ Agent is running"
 else
   echo "  ⚠ Agent may have failed to start. Check logs:"
-  echo "    sudo no-base logs --lines 20"
+  echo "    sudo nobase logs --lines 20"
 fi
 
 echo ""
@@ -291,9 +291,9 @@ echo "  ║   Installation Complete!              ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo ""
 echo "  Commands:"
-echo "    no-base status     — check status"
-echo "    no-base logs       — view logs (live)"
-echo "    no-base restart    — restart agent"
-echo "    no-base stop       — stop agent"
-echo "    no-base uninstall  — remove agent"
+echo "    nobase status     — check status"
+echo "    nobase logs       — view logs (live)"
+echo "    nobase restart    — restart agent"
+echo "    nobase stop       — stop agent"
+echo "    nobase uninstall  — remove agent"
 echo ""

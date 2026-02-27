@@ -1,19 +1,19 @@
-//! No-Base Agent — runs on managed servers, connects to the gateway via WSS.
+//! NoBase Agent — runs on managed servers, connects to the gateway via WSS.
 //!
 //! Usage:
-//!   no-base run                         # Normal operation (reads /etc/no-base/agent.toml)
-//!   no-base run --config ./agent.toml   # Custom config path
-//!   no-base start                       # Start the agent service
-//!   no-base stop                        # Stop the agent service
-//!   no-base restart                     # Restart the agent service
-//!   no-base status                      # Show agent service status
-//!   no-base logs                        # View live agent logs
-//!   no-base logs --lines 100            # View last N log lines
-//!   no-base enable                      # Enable agent on boot
-//!   no-base disable                     # Disable agent on boot
-//!   no-base update                      # Self-update binary from backend
-//!   no-base uninstall                   # Remove agent, config, and system service
-//!   no-base version                     # Print version info
+//!   nobase run                         # Normal operation (reads /etc/nobase/agent.toml)
+//!   nobase run --config ./agent.toml   # Custom config path
+//!   nobase start                       # Start the agent service
+//!   nobase stop                        # Stop the agent service
+//!   nobase restart                     # Restart the agent service
+//!   nobase status                      # Show agent service status
+//!   nobase logs                        # View live agent logs
+//!   nobase logs --lines 100            # View last N log lines
+//!   nobase enable                      # Enable agent on boot
+//!   nobase disable                     # Disable agent on boot
+//!   nobase update                      # Self-update binary from backend
+//!   nobase uninstall                   # Remove agent, config, and system service
+//!   nobase version                     # Print version info
 
 mod config;
 mod connection;
@@ -28,7 +28,7 @@ use tracing::{info, error};
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
-#[command(name = "no-base", about = "No-Base Agent", version = VERSION)]
+#[command(name = "nobase", about = "NoBase Agent", version = VERSION)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -39,7 +39,7 @@ enum Commands {
     /// Run the agent (default mode)
     Run {
         /// Path to config file
-        #[arg(short, long, default_value = "/etc/no-base/agent.toml")]
+        #[arg(short, long, default_value = "/etc/nobase/agent.toml")]
         config: String,
     },
     /// Start the agent service
@@ -66,7 +66,7 @@ enum Commands {
     /// Self-update: download latest binary from backend and restart service
     Update {
         /// Path to config file (to read backend_url)
-        #[arg(short, long, default_value = "/etc/no-base/agent.toml")]
+        #[arg(short, long, default_value = "/etc/nobase/agent.toml")]
         config: String,
     },
     /// Uninstall: stop service, remove binary, config, and systemd unit
@@ -98,7 +98,7 @@ async fn main() {
                 tracing_subscriber::fmt().with_env_filter(filter).init();
             }
 
-            info!("No-Base Agent v{VERSION} starting...");
+            info!("NoBase Agent v{VERSION} starting...");
 
             info!(
                 gateway = %cfg.connection.gateway_url,
@@ -112,22 +112,22 @@ async fn main() {
             }
         }
         Commands::Start => {
-            run_systemctl(&["start", "no-base"], "Agent started");
+            run_systemctl(&["start", "nobase"], "Agent started");
         }
         Commands::Stop => {
-            run_systemctl(&["stop", "no-base"], "Agent stopped");
+            run_systemctl(&["stop", "nobase"], "Agent stopped");
         }
         Commands::Restart => {
-            run_systemctl(&["restart", "no-base"], "Agent restarted");
+            run_systemctl(&["restart", "nobase"], "Agent restarted");
         }
         Commands::Status => {
             let status = std::process::Command::new("systemctl")
-                .args(["status", "no-base"])
+                .args(["status", "nobase"])
                 .status();
             std::process::exit(status.map(|s| s.code().unwrap_or(1)).unwrap_or(1));
         }
         Commands::Logs { lines, follow } => {
-            let mut args = vec!["-u", "no-base"];
+            let mut args = vec!["-u", "nobase"];
             let lines_str;
             if let Some(n) = lines {
                 lines_str = format!("{n}");
@@ -146,13 +146,13 @@ async fn main() {
             std::process::exit(status.map(|s| s.code().unwrap_or(1)).unwrap_or(1));
         }
         Commands::Enable => {
-            run_systemctl(&["enable", "no-base"], "Agent enabled on boot");
+            run_systemctl(&["enable", "nobase"], "Agent enabled on boot");
         }
         Commands::Disable => {
-            run_systemctl(&["disable", "no-base"], "Agent disabled on boot");
+            run_systemctl(&["disable", "nobase"], "Agent disabled on boot");
         }
         Commands::Update { config: config_path } => {
-            eprintln!("No-Base Agent — Self-Update");
+            eprintln!("NoBase Agent — Self-Update");
             eprintln!();
 
             // Load config to get backend_url
@@ -191,7 +191,7 @@ async fn main() {
             }
         }
         Commands::Uninstall => {
-            eprintln!("No-Base Agent — Uninstall");
+            eprintln!("NoBase Agent — Uninstall");
             eprintln!();
 
             if let Err(e) = uninstall().await {
@@ -200,7 +200,7 @@ async fn main() {
             }
         }
         Commands::Version => {
-            println!("no-base v{VERSION}");
+            println!("nobase v{VERSION}");
             println!("OS: {} {}", std::env::consts::OS, std::env::consts::ARCH);
         }
     }
@@ -227,21 +227,21 @@ async fn uninstall() -> Result<(), Box<dyn std::error::Error>> {
         return Err("This command must be run as root (use sudo)".into());
     }
 
-    eprintln!("  This will completely remove the No-Base Agent.");
+    eprintln!("  This will completely remove the NoBase Agent.");
     eprintln!();
 
     // Step 1: Stop and disable the systemd service
     let _ = std::process::Command::new("systemctl")
-        .args(["stop", "no-base"])
+        .args(["stop", "nobase"])
         .status();
     eprintln!("  ✓ Service stopped");
 
     let _ = std::process::Command::new("systemctl")
-        .args(["disable", "no-base", "--quiet"])
+        .args(["disable", "nobase", "--quiet"])
         .status();
 
     // Step 2: Remove systemd unit file
-    let service_path = "/etc/systemd/system/no-base.service";
+    let service_path = "/etc/systemd/system/nobase.service";
     if std::path::Path::new(service_path).exists() {
         std::fs::remove_file(service_path)?;
         let _ = std::process::Command::new("systemctl")
@@ -251,43 +251,43 @@ async fn uninstall() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Step 3: Remove configuration directory
-    let config_dir = "/etc/no-base";
+    let config_dir = "/etc/nobase";
     if std::path::Path::new(config_dir).exists() {
         std::fs::remove_dir_all(config_dir)?;
         eprintln!("  ✓ Configuration removed ({config_dir})");
     }
 
     // Step 4: Remove log file
-    let log_file = "/var/log/no-base.log";
+    let log_file = "/var/log/nobase.log";
     if std::path::Path::new(log_file).exists() {
         let _ = std::fs::remove_file(log_file);
         eprintln!("  ✓ Log file removed");
     }
 
     // Step 5: Remove metrics database
-    let metrics_db = "/var/lib/no-base/metrics.db";
+    let metrics_db = "/var/lib/nobase/metrics.db";
     if std::path::Path::new(metrics_db).exists() {
         let _ = std::fs::remove_file(metrics_db);
         // Remove parent dir if empty
-        let _ = std::fs::remove_dir("/var/lib/no-base");
+        let _ = std::fs::remove_dir("/var/lib/nobase");
         eprintln!("  ✓ Metrics database removed");
     }
 
     // Step 6: Remove the old standalone uninstall script if it exists
-    let old_uninstall = "/usr/local/bin/no-base-uninstall";
+    let old_uninstall = "/usr/local/bin/nobase-uninstall";
     if std::path::Path::new(old_uninstall).exists() {
         let _ = std::fs::remove_file(old_uninstall);
         eprintln!("  ✓ Legacy uninstall script removed");
     }
 
     // Step 7: Remove binary (this is us — do it last)
-    let binary_path = "/usr/local/bin/no-base";
+    let binary_path = "/usr/local/bin/nobase";
     if std::path::Path::new(binary_path).exists() {
         std::fs::remove_file(binary_path)?;
         eprintln!("  ✓ Binary removed");
     }
 
     eprintln!();
-    eprintln!("  No-Base Agent has been completely removed.");
+    eprintln!("  NoBase Agent has been completely removed.");
     Ok(())
 }

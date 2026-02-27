@@ -138,7 +138,7 @@ fn default_collection_interval() -> u64 { 1 }
 fn default_metrics_interval() -> u64 { 5 }
 fn default_true() -> bool { true }
 fn default_buffer_retention() -> u64 { 24 }
-fn default_buffer_path() -> String { "/var/lib/no-base/metrics.db".into() }
+fn default_buffer_path() -> String { "/var/lib/nobase/metrics.db".into() }
 fn default_backfill_chunk() -> u64 { 300 }
 fn default_max_file_size() -> u64 { 100 }
 fn default_log_level() -> String { "info".into() }

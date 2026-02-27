@@ -1,4 +1,4 @@
-//! Agent Protocol — shared types for No-Base agent ↔ gateway ↔ backend communication.
+//! Agent Protocol — shared types for NoBase agent ↔ gateway ↔ backend communication.
 //!
 //! All messages use JSON-RPC 2.0 envelopes over WebSocket.
 //! This crate is compiled into both the agent and gateway binaries.

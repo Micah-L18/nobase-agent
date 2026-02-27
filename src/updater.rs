@@ -1,10 +1,10 @@
-//! Self-update logic for the No-Base Agent.
+//! Self-update logic for the NoBase Agent.
 //!
 //! Downloads the latest binary from the backend, verifies its SHA-256 checksum,
 //! atomically replaces the running binary, and restarts the systemd service.
 //!
 //! Used by:
-//!   - `no-base update` CLI command
+//!   - `nobase update` CLI command
 //!   - `self_update` RPC handler (backend-triggered push)
 //!   - Automatic update check on reconnect to gateway
 
@@ -12,8 +12,8 @@ use sha2::{Digest, Sha256};
 use std::os::unix::fs::PermissionsExt;
 use tracing::{debug, info, warn};
 
-const BINARY_PATH: &str = "/usr/local/bin/no-base";
-const TMP_PATH: &str = "/tmp/no-base-update";
+const BINARY_PATH: &str = "/usr/local/bin/nobase";
+const TMP_PATH: &str = "/tmp/nobase-update";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Result of an update check.
@@ -46,7 +46,7 @@ impl std::fmt::Display for UpdateResult {
 /// and automatic reconnect check.
 ///
 /// - `backend_url`: HTTP base URL of the backend (e.g. "http://192.168.0.247:3044")
-/// - `restart_service`: Whether to run `systemctl restart no-base` after replacing
+/// - `restart_service`: Whether to run `systemctl restart nobase` after replacing
 ///   the binary. Set to `true` for RPC/reconnect (agent is running as a service),
 ///   `false` if the caller handles restart itself.
 ///
@@ -156,9 +156,9 @@ pub async fn check_and_update(
 
     // Step 6: Restart service if requested
     if restart_service {
-        info!("Restarting no-base service...");
+        info!("Restarting nobase service...");
         match tokio::process::Command::new("systemctl")
-            .args(["restart", "no-base"])
+            .args(["restart", "nobase"])
             .status()
             .await
         {

@@ -1,11 +1,11 @@
 [package]
-name = "no-base"
-version = "0.1.6"
+name = "nobase"
+version = "0.1.7"
 edition = "2021"
 license = "MIT"
 
 [[bin]]
-name = "no-base"
+name = "nobase"
 path = "src/main.rs"
 
 [dependencies]

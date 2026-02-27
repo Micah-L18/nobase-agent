@@ -6,7 +6,7 @@
 //! replays any remaining history.
 //!
 //! The database lives at the path specified in `metrics.buffer_path`
-//! (default `/var/lib/no-base/metrics.db`).
+//! (default `/var/lib/nobase/metrics.db`).
 
 use agent_proto::MetricsPayload;
 use rusqlite::{params, Connection};
