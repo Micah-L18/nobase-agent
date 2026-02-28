@@ -1037,8 +1037,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "no-base"
-version = "0.1.5"
+name = "nobase"
+version = "0.1.7"
 dependencies = [
  "agent-proto",
  "base64",

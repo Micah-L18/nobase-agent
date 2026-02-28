@@ -6,7 +6,7 @@
 
 use agent_proto::*;
 use sysinfo::{Disks, Networks, System};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tracing::debug;
 
@@ -18,6 +18,17 @@ struct NetworkSnapshot {
 }
 
 static PREV_NET_SNAPSHOT: Mutex<Option<NetworkSnapshot>> = Mutex::new(None);
+
+/// Cached memory speed — hardware constant, only needs one dmidecode call ever.
+static MEMORY_SPEED_CACHE: OnceLock<Option<u64>> = OnceLock::new();
+
+/// Cached GPU metrics with timestamp for 30-second TTL.
+static GPU_CACHE: Mutex<Option<(Instant, Option<GpuMetrics>)>> = Mutex::new(None);
+
+/// Cached Docker metrics with timestamp for 30-second TTL.
+static DOCKER_CACHE: Mutex<Option<(Instant, Option<DockerMetrics>)>> = Mutex::new(None);
+
+const PROBE_CACHE_TTL: Duration = Duration::from_secs(30);
 
 /// Handle an on-demand metrics.collect RPC request.
 /// Creates a fresh System instance, refreshes twice (1s delay for CPU usage), returns metrics.
@@ -221,31 +232,50 @@ fn get_cpu_temperature() -> Option<f64> {
 }
 
 /// Try to get memory speed (MHz) from dmidecode or sysfs.
+/// Cached permanently via OnceLock — RAM speed never changes at runtime.
 fn get_memory_speed() -> Option<u64> {
-    #[cfg(target_os = "linux")]
-    {
-        // Try dmidecode (requires root)
-        if let Ok(output) = std::process::Command::new("sudo")
-            .args(["dmidecode", "-t", "memory"])
-            .output()
+    *MEMORY_SPEED_CACHE.get_or_init(|| {
+        #[cfg(target_os = "linux")]
         {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                if line.contains("Speed:") && !line.contains("Unknown") {
-                    if let Some(speed) = line.split_whitespace().nth(1) {
-                        if let Ok(mhz) = speed.parse::<u64>() {
-                            return Some(mhz);
+            // Try dmidecode (requires root)
+            if let Ok(output) = std::process::Command::new("sudo")
+                .args(["dmidecode", "-t", "memory"])
+                .output()
+            {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    if line.contains("Speed:") && !line.contains("Unknown") {
+                        if let Some(speed) = line.split_whitespace().nth(1) {
+                            if let Ok(mhz) = speed.parse::<u64>() {
+                                return Some(mhz);
+                            }
                         }
                     }
                 }
             }
         }
-    }
-    None
+        None
+    })
 }
 
 /// Probe GPU metrics via nvidia-smi.
+/// Cached for 30 seconds — GPU utilization changes, but sampling every second is wasteful.
 fn get_gpu_metrics() -> Option<GpuMetrics> {
+    {
+        let cache = GPU_CACHE.lock().unwrap();
+        if let Some((ts, ref cached)) = *cache {
+            if ts.elapsed() < PROBE_CACHE_TTL {
+                return cached.clone();
+            }
+        }
+    }
+
+    let result = probe_gpu_metrics();
+    *GPU_CACHE.lock().unwrap() = Some((Instant::now(), result.clone()));
+    result
+}
+
+fn probe_gpu_metrics() -> Option<GpuMetrics> {
     let output = std::process::Command::new("nvidia-smi")
         .args([
             "--query-gpu=gpu_name,memory.total,memory.used,utilization.gpu,temperature.gpu",
@@ -275,7 +305,23 @@ fn get_gpu_metrics() -> Option<GpuMetrics> {
 }
 
 /// Check Docker daemon status.
+/// Cached for 30 seconds — container counts change infrequently.
 fn get_docker_metrics() -> Option<DockerMetrics> {
+    {
+        let cache = DOCKER_CACHE.lock().unwrap();
+        if let Some((ts, ref cached)) = *cache {
+            if ts.elapsed() < PROBE_CACHE_TTL {
+                return cached.clone();
+            }
+        }
+    }
+
+    let result = probe_docker_metrics();
+    *DOCKER_CACHE.lock().unwrap() = Some((Instant::now(), result.clone()));
+    result
+}
+
+fn probe_docker_metrics() -> Option<DockerMetrics> {
     let output = std::process::Command::new("docker")
         .arg("info")
         .arg("--format")
