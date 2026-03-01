@@ -83,12 +83,18 @@ pub async fn run_connection_loop(config: AgentConfig, config_path: String) -> Re
     let mut backoff_secs: u64 = 1;
 
     loop {
+        let connect_start = std::time::Instant::now();
         match connect_and_run(config.clone(), &config_path, metrics_buffer.clone()).await {
             Ok(()) => {
                 info!("Connection closed gracefully");
                 break;
             }
             Err(e) => {
+                // If the connection was healthy for >30s, reset backoff — this was a
+                // transient drop of a working connection, not a startup failure.
+                if connect_start.elapsed().as_secs() > 30 {
+                    backoff_secs = 1;
+                }
                 error!("Connection error: {e:#}");
                 warn!("Reconnecting in {backoff_secs}s... (gateway_url was: {})",
                       config.read().await.connection.gateway_url);
