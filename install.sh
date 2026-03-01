@@ -41,9 +41,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo ""
-echo "  ╔═══════════════════════════════════════╗"
-echo "  ║   NoBase Agent Installer             ║"
-echo "  ╚═══════════════════════════════════════╝"
+echo "  ╔══════════════════════════════════════╗"
+echo "  ║        NoBase Agent Installer        ║"
+echo "  ╚══════════════════════════════════════╝"
 echo ""
 
 # ── Validate required arguments ──────────────────────────────
@@ -286,14 +286,13 @@ else
 fi
 
 echo ""
-echo "  ╔═══════════════════════════════════════╗"
-echo "  ║   Installation Complete!              ║"
-echo "  ╚═══════════════════════════════════════╝"
-echo ""
-echo "  Commands:"
-echo "    nobase status     — check status"
-echo "    nobase logs       — view logs (live)"
-echo "    nobase restart    — restart agent"
-echo "    nobase stop       — stop agent"
-echo "    nobase uninstall  — remove agent"
-echo ""
+echo "  ╔═════════════════════════════════════╗"
+echo "  ║       Installation Complete!        ║"
+echo "  ║                                     ║"
+echo "  ║ Commands:                           ║"
+echo "  ║ nobase status     — check status    ║"
+echo "  ║ nobase logs       — view logs (live)║"
+echo "  ║ nobase restart    — restart agent   ║"
+echo "  ║ nobase stop       — stop agent      ║"
+echo "  ║ nobase uninstall  — remove agent    ║"
+echo "  ╚═════════════════════════════════════╝"
